@@ -33,27 +33,41 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
+  console.log('BODY:', email, password); 
 
   try {
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password required' });
+    }
+
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!user) {
+      console.log('User not found');
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!isMatch) {
+      console.log('Wrong password');
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
 
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '7d' });
 
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, 
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({ message: 'Logged in successfully', user: { id: user._id, name: user.name, email: user.email } });
+    res.status(200).json({ message: 'Logged in successfully', user: {
+      id: user._id,
+      name: user.name,
+      email: user.email
+    }});
   } catch (err) {
+    console.error('Login failed:', err);
     res.status(500).json({ error: err.message });
   }
 };
