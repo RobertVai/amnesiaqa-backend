@@ -1,54 +1,60 @@
-const Question = require('../models/Question')
+const Question = require('../models/Question');
+const User = require('../models/user');
 
 
-exports.getAllQuestions = async (req, res) => {
+const getAllQuestions = async (req, res) => {
   try {
-    const questions = await Question.find().sort({ date: -1 })
-    res.json(questions)
+    const questions = await Question.find().sort({ date: -1 });
+    res.json(questions);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-}
+};
 
 
-exports.createQuestion = async (req, res) => {
-  const { questionText } = req.body
-  const userId = req.user.id
+const createQuestion = async (req, res) => {
+  const { questionText } = req.body;
+  const userId = req.user.id;
 
   try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
     const newQuestion = new Question({
-      questionText,         
+      questionText,
       user_id: userId,
-    })
+      userName: user.name, 
+    });
 
-    await newQuestion.save()
-    res.status(201).json(newQuestion)
+    await newQuestion.save();
+    res.status(201).json(newQuestion);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-}
+};
 
 
-exports.deleteQuestion = async (req, res) => {
-  const { id } = req.params
-  const userId = req.user.id
+const deleteQuestion = async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
 
   try {
-    const question = await Question.findById(id)
+    const question = await Question.findById(id);
     if (!question)
-      return res.status(404).json({ message: 'Question not found' })
+      return res.status(404).json({ message: 'Question not found' });
 
     if (question.user_id.toString() !== userId)
-      return res.status(403).json({ message: 'Not authorized to delete this question' })
+      return res.status(403).json({ message: 'Not authorized to delete this question' });
 
-    await Question.findByIdAndDelete(id)
-    res.json({ message: 'Question deleted' })
+    await Question.findByIdAndDelete(id);
+    res.json({ message: 'Question deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-}
+};
 
-exports.toggleLike = async (req, res) => {
+
+const toggleLike = async (req, res) => {
   try {
     const questionId = req.params.id;
     const userId = req.user.id;
@@ -64,16 +70,28 @@ exports.toggleLike = async (req, res) => {
     } else {
       question.likedBy.push(userId);
       question.likes += 1;
+
+      
+      if (question.dislikedBy.includes(userId)) {
+        question.dislikedBy = question.dislikedBy.filter(uid => uid.toString() !== userId);
+        question.dislikes -= 1;
+      }
     }
 
     await question.save();
-    res.json({ likes: question.likes, liked: !alreadyLiked });
+    res.json({
+      likes: question.likes,
+      dislikes: question.dislikes,
+      likedBy: question.likedBy,
+      dislikedBy: question.dislikedBy,
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to toggle like' });
   }
 };
 
-exports.toggleDislike = async (req, res) => {
+
+const toggleDislike = async (req, res) => {
   try {
     const questionId = req.params.id;
     const userId = req.user.id;
@@ -87,14 +105,14 @@ exports.toggleDislike = async (req, res) => {
       question.dislikedBy = question.dislikedBy.filter(uid => uid.toString() !== userId);
       question.dislikes -= 1;
     } else {
+      question.dislikedBy.push(userId);
+      question.dislikes += 1;
+
       
       if (question.likedBy.includes(userId)) {
         question.likedBy = question.likedBy.filter(uid => uid.toString() !== userId);
         question.likes -= 1;
       }
-
-      question.dislikedBy.push(userId);
-      question.dislikes += 1;
     }
 
     await question.save();
@@ -107,4 +125,13 @@ exports.toggleDislike = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to toggle dislike' });
   }
+};
+
+
+module.exports = {
+  getAllQuestions,
+  createQuestion,
+  deleteQuestion,
+  toggleLike,
+  toggleDislike,
 };
