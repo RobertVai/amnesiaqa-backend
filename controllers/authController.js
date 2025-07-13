@@ -8,7 +8,6 @@ if (!JWT_SECRET) {
   throw new Error('❌ JWT_SECRET is not defined in .env file!');
 }
 
-
 exports.register = async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -48,7 +47,6 @@ exports.register = async (req, res) => {
   }
 };
 
-
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   console.log('🔐 Login attempt with:', email);
@@ -86,6 +84,20 @@ exports.login = async (req, res) => {
 
   } catch (err) {
     console.error('❌ Login failed:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+exports.getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ user });
+  } catch (err) {
+    console.error('❌ Get current user error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
