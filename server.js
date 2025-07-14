@@ -16,7 +16,7 @@ const app = express();
 
 
 app.use(cors({
-  origin: 'https://amnesia-qa-vqje.vercel.app',
+  origin: 'https://amnesia-qa-54yf.vercel.app/',
   credentials: true
 }));
 
