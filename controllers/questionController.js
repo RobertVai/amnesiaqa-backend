@@ -6,13 +6,14 @@ const getAllQuestions = async (req, res) => {
   try {
     const questions = await Question.find().sort({ date: -1 }).lean();
 
-    
-    for (let q of questions) {
-      const count = await Answer.countDocuments({ question_id: q._id });
-      q.answersCount = count;
-    }
+    const updatedQuestions = await Promise.all(
+      questions.map(async (q) => {
+        const count = await Answer.countDocuments({ question_id: q._id });
+        return { ...q, answersCount: count };
+      })
+    );
 
-    res.json(questions);
+    res.json(updatedQuestions);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -29,7 +30,7 @@ const createQuestion = async (req, res) => {
     const newQuestion = new Question({
       questionText,
       user_id: userId,
-      userName: user.name
+      userName: user.name,
     });
 
     await newQuestion.save();
@@ -60,76 +61,79 @@ const deleteQuestion = async (req, res) => {
 
 const toggleLike = async (req, res) => {
   try {
-    const questionId = req.params.id;
+    const question = await Question.findById(req.params.id);
     const userId = req.user.id;
 
-    const question = await Question.findById(questionId);
-    if (!question) return res.status(404).json({ message: 'Question not found' });
+    if (!question) return res.status(404).json({ message: "Question not found" });
 
-    const alreadyLiked = question.likedBy.includes(userId);
+    const hasLiked = question.likedBy.includes(userId);
+    const hasDisliked = question.dislikedBy.includes(userId);
 
-    if (alreadyLiked) {
-      question.likedBy = question.likedBy.filter(uid => uid.toString() !== userId);
-      question.likes -= 1;
-    } else {
-      if (question.dislikedBy.includes(userId)) {
-        question.dislikedBy = question.dislikedBy.filter(uid => uid.toString() !== userId);
-        question.dislikes -= 1;
-      }
+    
+    question.likedBy = question.likedBy.filter(id => id.toString() !== userId);
+    question.dislikedBy = question.dislikedBy.filter(id => id.toString() !== userId);
+
+    
+    if (!hasLiked) {
       question.likedBy.push(userId);
-      question.likes += 1;
     }
 
+    question.likes = question.likedBy.length;
+    question.dislikes = question.dislikedBy.length;
+
     await question.save();
+
     res.json({
       likes: question.likes,
       dislikes: question.dislikes,
       likedBy: question.likedBy,
-      dislikedBy: question.dislikedBy
+      dislikedBy: question.dislikedBy,
+      currentUserId: userId,
     });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to toggle like' });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to toggle like" });
   }
 };
 
 const toggleDislike = async (req, res) => {
   try {
-    const questionId = req.params.id;
+    const question = await Question.findById(req.params.id);
     const userId = req.user.id;
 
-    const question = await Question.findById(questionId);
-    if (!question) return res.status(404).json({ message: 'Question not found' });
+    if (!question) return res.status(404).json({ message: "Question not found" });
 
-    const alreadyDisliked = question.dislikedBy.includes(userId);
+    const hasLiked = question.likedBy.includes(userId);
+    const hasDisliked = question.dislikedBy.includes(userId);
 
-    if (alreadyDisliked) {
-      question.dislikedBy = question.dislikedBy.filter(uid => uid.toString() !== userId);
-      question.dislikes -= 1;
-    } else {
-      if (question.likedBy.includes(userId)) {
-        question.likedBy = question.likedBy.filter(uid => uid.toString() !== userId);
-        question.likes -= 1;
-      }
+    
+    question.likedBy = question.likedBy.filter(id => id.toString() !== userId);
+    question.dislikedBy = question.dislikedBy.filter(id => id.toString() !== userId);
+
+    
+    if (!hasDisliked) {
       question.dislikedBy.push(userId);
-      question.dislikes += 1;
     }
 
+    question.likes = question.likedBy.length;
+    question.dislikes = question.dislikedBy.length;
+
     await question.save();
+
     res.json({
       likes: question.likes,
       dislikes: question.dislikes,
       likedBy: question.likedBy,
-      dislikedBy: question.dislikedBy
+      dislikedBy: question.dislikedBy,
+      currentUserId: userId,
     });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to toggle dislike' });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to toggle dislike" });
   }
 };
-
 module.exports = {
   getAllQuestions,
   createQuestion,
   deleteQuestion,
   toggleLike,
-  toggleDislike
+  toggleDislike,
 };
