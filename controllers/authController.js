@@ -8,7 +8,7 @@ if (!JWT_SECRET) {
   throw new Error('❌ JWT_SECRET is not defined in .env file!');
 }
 
-exports.register = async (req, res) => {
+const register = async (req, res) => {
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
@@ -47,7 +47,7 @@ exports.register = async (req, res) => {
   }
 };
 
-exports.login = async (req, res) => {
+const login = async (req, res) => {
   const { email, password } = req.body;
   console.log('🔐 Login attempt with:', email);
 
@@ -88,7 +88,7 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.getCurrentUser = async (req, res) => {
+const getCurrentUser = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) {
@@ -100,4 +100,20 @@ exports.getCurrentUser = async (req, res) => {
     console.error('❌ Get current user error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
+};
+
+const logout = (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+  return res.status(200).json({ message: 'Logged out successfully' });
+};
+
+module.exports = {
+  register,
+  login,
+  getCurrentUser,
+  logout,
 };

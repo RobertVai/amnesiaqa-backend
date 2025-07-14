@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const {
   getAnswersByQuestionId,
+  getAnswersCountByQuestionId,
   createAnswer,
   deleteAnswer,
   toggleDislike,
@@ -11,6 +12,8 @@ const {
 
 
 router.get('/question/:id/answers', getAnswersByQuestionId);
+
+router.get('/question/:id/answers/count', getAnswersCountByQuestionId);
 
 
 router.post('/question/:id/answers', auth, createAnswer);

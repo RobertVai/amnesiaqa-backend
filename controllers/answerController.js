@@ -1,6 +1,7 @@
 const Answer = require('../models/Answer');
 const User = require('../models/user');
 
+
 const getAnswersByQuestionId = async (req, res) => {
   try {
     const questionId = req.params.id;
@@ -10,6 +11,18 @@ const getAnswersByQuestionId = async (req, res) => {
     res.status(500).json({ error: 'Failed to get answers' });
   }
 };
+
+
+const getAnswersCountByQuestionId = async (req, res) => {
+  try {
+    const questionId = req.params.id;
+    const count = await Answer.countDocuments({ question_id: questionId });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get answers count' });
+  }
+};
+
 
 const createAnswer = async (req, res) => {
   try {
@@ -35,6 +48,7 @@ const createAnswer = async (req, res) => {
   }
 };
 
+
 const deleteAnswer = async (req, res) => {
   try {
     const answerId = req.params.id;
@@ -52,6 +66,7 @@ const deleteAnswer = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete answer' });
   }
 };
+
 
 const toggleLike = async (req, res) => {
   try {
@@ -81,6 +96,7 @@ const toggleLike = async (req, res) => {
   }
 };
 
+// 🔹 Дизлайк на ответ
 const toggleDislike = async (req, res) => {
   try {
     const answer = await Answer.findById(req.params.id);
@@ -111,6 +127,7 @@ const toggleDislike = async (req, res) => {
 
 module.exports = {
   getAnswersByQuestionId,
+  getAnswersCountByQuestionId, 
   createAnswer,
   deleteAnswer,
   toggleLike,
